@@ -13,7 +13,7 @@ class Flowline<I, IExecutor, O> {
     Pipeline<dynamic, O> localPostPipeline,
     Pipeline<dynamic, dynamic> localErrorPipeline,
   }) {
-    return (I input) async {
+    Future<O> wrapedExecutor(I input) async {
       try {
         final _executorInput = prePipeline != null ? await prePipeline.run(input) : input;
         final _executorOutput = await executor(_executorInput);
@@ -30,6 +30,8 @@ class Flowline<I, IExecutor, O> {
 
         rethrow;
       }
-    };
+    }
+
+    return wrapedExecutor;
   }
 }
