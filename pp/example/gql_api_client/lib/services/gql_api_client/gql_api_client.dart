@@ -97,7 +97,7 @@ class GqlApiClient {
 
     return Pipeline<SendRequestParams, _SendRequestParams>.fromPipelinesList([
       transformPublicSendRequestParamsToParticle,
-      globalPrePipeline,
+      globalPrePipeline.isEmpty == true ? null : globalPrePipeline,
       transformParticleToPrivateSendRequestParams,
     ]);
   }
@@ -140,13 +140,13 @@ class GqlApiClient {
           );
         }
 
-        throw Exception('input.original is not SendRequestParams');
+        throw Exception('input.original is not UploadFileParams');
       },
     );
 
     return Pipeline<UploadFileParams, _UploadFileParams>.fromPipelinesList([
       transformPublicUploadFileParamsToParticle,
-      globalPrePipeline,
+      globalPrePipeline.isEmpty == true ? null : globalPrePipeline,
       transformParticleToPrivateUploadFileParams,
     ]);
   }
