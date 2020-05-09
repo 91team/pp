@@ -17,23 +17,29 @@ class PreProcessorParticle {
   });
 }
 
-class UploadFileParams {
-  File file;
-  bool protected = false;
-
-  UploadFileParams({@required this.file, this.protected});
-}
-
 class BaseParams {
   bool protected = false;
   BaseParams({this.protected});
+}
+
+class UploadFileParams extends BaseParams {
+  File file;
+
+  UploadFileParams({
+    @required this.file,
+    bool protected,
+  }) : super(protected: protected);
 }
 
 class SendRequestParams extends BaseParams {
   String query;
   Map<String, dynamic> variables;
 
-  SendRequestParams({@required this.query, this.variables, bool protected}) : super(protected: protected);
+  SendRequestParams({
+    @required this.query,
+    this.variables,
+    bool protected,
+  }) : super(protected: protected);
 }
 
 class GqlApiClient {
@@ -46,34 +52,54 @@ class GqlApiClient {
     SendRequestParams uInput, {
     Pipeline<dynamic, TResult> postPipeline,
   }) async {
-    final flow = Flowline<SendRequestParams, _SendRequestParams, String>(
+    final flow = Flowline<SendRequestParams, SendRequestPureParams, String>(
       prePipeline: _createSendRequestPrePipeline(uInput),
-      postPipeline: _createPostPipeline(postPipeline),
+      postPipeline: _createPostPipeline<dynamic, String>(postPipeline),
       exceptionPipeline: globalExceptionPipeline.isEmpty == true ? null : globalExceptionPipeline,
     );
 
-    final executor = flow.wrapExecutor(_sendRequest);
+    final executor = flow.wrapExecutor(pureSendRequest);
 
     return await executor(uInput) as TResult;
+  }
+
+  Future<String> pureSendRequest(SendRequestPureParams param) async {
+    final response = await apiClient.post(
+      'graphql/api',
+      body: param.body,
+      headers: param.headers,
+    );
+
+    return response;
   }
 
   Future<TResult> uploadFile<TResult>(
     UploadFileParams uInput, {
     Pipeline<dynamic, TResult> postPipeline,
   }) async {
-    final flow = Flowline<UploadFileParams, _UploadFileParams, String>(
+    final flow = Flowline<UploadFileParams, UploadFilePureParams, String>(
       prePipeline: _createUploadFilePrePipeline(uInput),
-      postPipeline: _createPostPipeline(postPipeline),
+      postPipeline: _createPostPipeline<dynamic, String>(postPipeline),
       exceptionPipeline: globalExceptionPipeline.isEmpty == true ? null : globalExceptionPipeline,
     );
 
-    final executor = flow.wrapExecutor(_uploadFile);
+    final executor = flow.wrapExecutor(pureUploadFile);
 
     return await executor(uInput) as TResult;
   }
 
-  Pipeline _createPostPipeline(Pipeline postPipeline) {
-    return Pipeline.fromPipelinesList(
+  Future<String> pureUploadFile(UploadFilePureParams param) async {
+    final response = await apiClient.postForm(
+      'graphql/api',
+      body: param.body,
+      headers: param.headers,
+    );
+
+    return response;
+  }
+
+  Pipeline<LI, LO> _createPostPipeline<LI, LO>(Pipeline postPipeline) {
+    return Pipeline<LI, LO>.fromPipelinesList(
       [
         globalPostPipeline.isEmpty == true ? null : globalPostPipeline,
         postPipeline,
@@ -81,8 +107,9 @@ class GqlApiClient {
     );
   }
 
-  Pipeline<SendRequestParams, _SendRequestParams> _createSendRequestPrePipeline(SendRequestParams uInput) {
-    final transformPublicSendRequestParamsToParticle = Pipeline<SendRequestParams, PreProcessorParticle>.fromFunction(
+  Pipeline<SendRequestParams, SendRequestPureParams> _createSendRequestPrePipeline(SendRequestParams uInput) {
+    final transformPublicSendRequestPureParamsToParticle =
+        Pipeline<SendRequestParams, PreProcessorParticle>.fromFunction(
       (originalInput) async {
         originalInput.protected = originalInput.protected ?? false;
 
@@ -94,28 +121,29 @@ class GqlApiClient {
       },
     );
 
-    final transformParticleToPrivateSendRequestParams = Pipeline<PreProcessorParticle, _SendRequestParams>.fromFunction(
+    final transformParticleToPrivateSendRequestPureParams =
+        Pipeline<PreProcessorParticle, SendRequestPureParams>.fromFunction(
       (input) async {
         if (input.originalInput is SendRequestParams) {
           final original = input.originalInput as SendRequestParams;
-          return _SendRequestParams(
+          return SendRequestPureParams(
             body: {'query': original.query, 'variables': original.variables},
             headers: input.headers,
           );
         }
 
-        throw Exception('input.original is not SendRequestParams');
+        throw Exception('input.original is not SendRequestPureParams');
       },
     );
 
-    return Pipeline<SendRequestParams, _SendRequestParams>.fromPipelinesList([
-      transformPublicSendRequestParamsToParticle,
+    return Pipeline<SendRequestParams, SendRequestPureParams>.fromPipelinesList([
+      transformPublicSendRequestPureParamsToParticle,
       globalPrePipeline.isEmpty == true ? null : globalPrePipeline,
-      transformParticleToPrivateSendRequestParams,
+      transformParticleToPrivateSendRequestPureParams,
     ]);
   }
 
-  Pipeline<UploadFileParams, _UploadFileParams> _createUploadFilePrePipeline(UploadFileParams uInput) {
+  Pipeline<UploadFileParams, UploadFilePureParams> _createUploadFilePrePipeline(UploadFileParams uInput) {
     final transformPublicUploadFileParamsToParticle = Pipeline<UploadFileParams, PreProcessorParticle>.fromFunction(
       (originalInput) async {
         originalInput.protected = originalInput.protected ?? false;
@@ -128,12 +156,13 @@ class GqlApiClient {
       },
     );
 
-    final transformParticleToPrivateUploadFileParams = Pipeline<PreProcessorParticle, _UploadFileParams>.fromFunction(
+    final transformParticleToPrivateUploadFileParams =
+        Pipeline<PreProcessorParticle, UploadFilePureParams>.fromFunction(
       (input) async {
         if (input.originalInput is UploadFileParams) {
           final original = input.originalInput as UploadFileParams;
 
-          return _UploadFileParams(
+          return UploadFilePureParams(
             body: {
               'operations': '''
                     {
@@ -157,49 +186,29 @@ class GqlApiClient {
       },
     );
 
-    return Pipeline<UploadFileParams, _UploadFileParams>.fromPipelinesList([
+    return Pipeline<UploadFileParams, UploadFilePureParams>.fromPipelinesList([
       transformPublicUploadFileParamsToParticle,
       globalPrePipeline.isEmpty == true ? null : globalPrePipeline,
       transformParticleToPrivateUploadFileParams,
     ]);
   }
-
-  Future<String> _sendRequest(_SendRequestParams param) async {
-    final response = await apiClient.post(
-      'graphql/api',
-      body: param.body,
-      headers: param.headers,
-    );
-
-    return response;
-  }
-
-  Future<String> _uploadFile(_UploadFileParams param) async {
-    final response = await apiClient.postForm(
-      'graphql/api',
-      body: param.body,
-      headers: param.headers,
-    );
-
-    return response;
-  }
 }
 
-class _SendRequestParams {
+class SendRequestPureParams {
   Map<String, dynamic> body;
   Map<String, dynamic> headers;
 
-  _SendRequestParams({
+  SendRequestPureParams({
     @required this.body,
     @required this.headers,
   });
 }
 
-class _UploadFileParams {
+class UploadFilePureParams {
   Map<String, dynamic> body;
   Map<String, dynamic> headers;
 
-  _UploadFileParams({
+  UploadFilePureParams({
     @required this.body,
     @required this.headers,
   });
