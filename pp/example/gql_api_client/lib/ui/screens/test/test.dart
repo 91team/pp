@@ -11,17 +11,17 @@ class TestScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final controller = TestScreenController();
+
     return ScreenWrapper(
-      creator: () => TestScreenController()..init(),
+      creator: () => TestScreenController(),
       child: Scaffold(
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               GestureDetector(
-                onTap: () {
-                  print('tap on start button');
-                },
+                onTap: controller.tap,
                 child: Text('start'),
               ),
             ],

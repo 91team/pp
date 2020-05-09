@@ -47,7 +47,7 @@ void main() async {
   final flow = Flowline<String, int, int>(
     prePipeline: pre,
     postPipeline: post,
-    errorPipeline: error,
+    exceptionPipeline: error,
   );
   print(await (flow.wrapExecutor(executor))('1'));
 }
