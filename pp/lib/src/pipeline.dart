@@ -1,5 +1,7 @@
+typedef Middleware<I, O> = Future<O> Function(I);
+
 class Pipeline<I, O> {
-  final List<dynamic> _middlewares = [];
+  final List<Function> _middlewares = [];
 
   Pipeline();
 
@@ -13,6 +15,10 @@ class Pipeline<I, O> {
 
   Pipeline.fromPipeline(Pipeline<dynamic, dynamic> pipeline) {
     _middlewares.addAll(pipeline._middlewares);
+  }
+
+  Pipeline.fromFunction(Middleware<I, O> middleware) {
+    _middlewares.add(middleware);
   }
 
   void add<LI, LO>(Future<LO> Function(LI param) fn) {
