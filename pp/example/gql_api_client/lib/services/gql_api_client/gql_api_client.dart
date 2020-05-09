@@ -42,14 +42,14 @@ class GqlApiClient {
   Pipeline globalPostPipeline = Pipeline<dynamic, dynamic>();
   Pipeline globalExceptionPipeline = Pipeline();
 
-  Future<TResult> sendRequest<TResult>(SendRequestParams uInput, {Pipeline<dynamic, TResult> postPipeline}) async {
+  Future<TResult> sendRequest<TResult>(
+    SendRequestParams uInput, {
+    Pipeline<dynamic, TResult> postPipeline,
+  }) async {
     final flow = Flowline<SendRequestParams, _SendRequestParams, String>(
       prePipeline: _createSendRequestPrePipeline(uInput),
-      postPipeline: Pipeline.fromPipelinesList([
-        globalPostPipeline.isEmpty == true ? null : globalPostPipeline,
-        postPipeline,
-      ]),
-      exceptionPipeline: globalExceptionPipeline,
+      postPipeline: _createPostPipeline(postPipeline),
+      exceptionPipeline: globalExceptionPipeline.isEmpty == true ? null : globalExceptionPipeline,
     );
 
     final executor = flow.wrapExecutor(_sendRequest);
@@ -57,15 +57,28 @@ class GqlApiClient {
     return await executor(uInput) as TResult;
   }
 
-  Future<TResult> uploadFile<TResult>(UploadFileParams uInput) async {
+  Future<TResult> uploadFile<TResult>(
+    UploadFileParams uInput, {
+    Pipeline<dynamic, TResult> postPipeline,
+  }) async {
     final flow = Flowline<UploadFileParams, _UploadFileParams, String>(
       prePipeline: _createUploadFilePrePipeline(uInput),
-      exceptionPipeline: globalExceptionPipeline,
+      postPipeline: _createPostPipeline(postPipeline),
+      exceptionPipeline: globalExceptionPipeline.isEmpty == true ? null : globalExceptionPipeline,
     );
 
     final executor = flow.wrapExecutor(_uploadFile);
 
     return await executor(uInput) as TResult;
+  }
+
+  Pipeline _createPostPipeline(Pipeline postPipeline) {
+    return Pipeline.fromPipelinesList(
+      [
+        globalPostPipeline.isEmpty == true ? null : globalPostPipeline,
+        postPipeline,
+      ],
+    );
   }
 
   Pipeline<SendRequestParams, _SendRequestParams> _createSendRequestPrePipeline(SendRequestParams uInput) {
