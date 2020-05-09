@@ -3,9 +3,9 @@ import 'package:pp/src/pipeline.dart';
 class Flowline<I, IExecutor, O> {
   Pipeline<I, IExecutor> prePipeline;
   Pipeline<dynamic, O> postPipeline;
-  Pipeline<dynamic, dynamic> errorPipeline;
+  Pipeline<dynamic, dynamic> exceptionPipeline;
 
-  Flowline({this.prePipeline, this.postPipeline, this.errorPipeline});
+  Flowline({this.prePipeline, this.postPipeline, this.exceptionPipeline});
 
   Future<O> Function(I input) wrapExecutor(
     Future<dynamic> Function(IExecutor executorInput) executor, {
@@ -20,12 +20,8 @@ class Flowline<I, IExecutor, O> {
         final _output = postPipeline != null ? await postPipeline.run(_executorOutput) : _executorOutput;
         return _output;
       } catch (e) {
-        if (errorPipeline != null) {
-          try {
-            throw await errorPipeline.run(e);
-          } catch (e) {
-            rethrow;
-          }
+        if (exceptionPipeline != null) {
+          throw await exceptionPipeline.run(e);
         }
 
         rethrow;

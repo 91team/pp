@@ -23,18 +23,14 @@ class Pipeline<I, O> {
     final transform = _makeTransform();
 
     final result = (await (I input) async {
-      try {
-        final transformed = await transform(input);
-        return transformed as O;
-      } catch (e) {
-        rethrow;
-      }
+      final transformed = await transform(input);
+      return transformed as O;
     })(i);
 
     return result as dynamic;
   }
 
-  dynamic _makeTransform() {
+  Function _makeTransform() {
     return (_middlewares.reduce((prev, current) {
       return ([dynamic a]) async => await current(await prev(a));
     }));
