@@ -1,5 +1,0 @@
-class Combine<TI> {
-  Combine() {
-    //
-  }
-}
