@@ -1,0 +1,3 @@
+class TestScreenController {
+  void init() {}
+}

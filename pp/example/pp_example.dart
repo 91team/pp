@@ -1,79 +1,53 @@
+import 'package:pp/src/flowline.dart';
+import 'package:pp/src/pipeline.dart';
+
 void main() async {
-  // Middleware a = ([dynamic p]) async {
-  //   print('a::$p');
-  //   return (p as num) + 1;
-  // };
+  final pre = Pipeline<String, int>();
+  final post_a = Pipeline<dynamic, int>();
+  final post_b = Pipeline<dynamic, int>();
+  final error = Pipeline();
 
-  Future<int> a([num p]) async {
-    print('a::$p');
-    return p + 1;
-  }
+  pre.add<String, int>((param) async => int.tryParse(param, radix: 10) + 1);
+  pre.add((param) async => param + 1);
+  pre.add((param) async => param + 1);
+  pre.add((param) async => param + 1);
+  pre.add((param) async => param + 1);
 
-  dynamic b = ([dynamic p]) async {
-    print('b::$p');
-    return (p as num) + 1;
-  };
-
-  dynamic c = ([dynamic p]) async {
-    print('c::$p');
-    return (p as num) + 1;
-  };
-
-  Future<String> d([int p]) async {
-    print('d::$p');
-    return (p + 1).toString();
-  }
-
-  // final inputAdapter = createInputAdapter([a as dynamic, b, c, d]);
-  // print('final:${await inputAdapter(1)}');
-
-  final inputCombine = Combine<int, String>()..addFn(a)..addFn(b)..addFn(c)..addFn<int, String>(d);
-
-  final tranformedInput = await inputCombine.execute(1);
-  print('final:${tranformedInput.toString()}');
-}
-
-typedef Middleware = Future<Object> Function([Object param]);
-Future<TO> Function(TI input) createInputAdapter<TI, TO>(List<dynamic> middlewares) {
-  final transform = (middlewares.reduce((acc, next) {
-    return ([dynamic b]) async => await next(await acc(b));
-  }));
-
-  return (TI input) async {
-    try {
-      final transformed = await transform(input);
-      return transformed as TO;
-    } catch (e) {
-      rethrow;
+  Future<dynamic> executor(int input) async {
+    if (input < 6) {
+      throw Exception('FUCK!!! input lt 6 ');
     }
-  };
-}
-
-class Combine<I, O> {
-  final List<dynamic> _middlewares = [];
-
-  void addFn<LI, LO>(Future<LO> Function(LI param) fn) {
-    _middlewares.add(fn);
+    return input + 1;
   }
 
-  void delAllFn(Future<dynamic> Function(dynamic param) fn, {int index}) {
-    _middlewares.removeWhere((middleware) => middleware == fn);
+  // A
+  post_a.add<dynamic, int>((param) async => (param as int) + 1);
+  post_a.add<int, int>((param) async => param + 1);
+  post_a.add<int, String>((param) async => (param + 1).toString());
+  // B
+  post_b.add<String, int>((param) async => int.tryParse(param, radix: 10) + 1);
+  post_b.add<int, int>((param) async => param + 1);
+  post_b.add<int, int>((param) async => param + 1);
+
+  final post = Pipeline<dynamic, int>.fromPipelinesList([post_a, post_b]);
+
+  error.add((param) async {
+    print('');
+    print('');
+    return Exception('AFTER ERROR PIPELINE');
+  });
+
+  Future<dynamic> errorHandler(Exception error) async {
+    print(error);
+    return Exception('AFTER ERROR PIPELINE 2');
   }
 
-  Future<O> execute(I i) async {
-    final transform = (_middlewares.reduce((acc, next) {
-      return ([dynamic b]) async => await next(await acc(b));
-    }));
+  error.add<Exception, dynamic>(errorHandler);
 
-    final result = (await (I input) async {
-      try {
-        final transformed = await transform(input);
-        return transformed as O;
-      } catch (e) {
-        rethrow;
-      }
-    })(i);
-
-    return result as dynamic;
-  }
+  final flow = Flowline<String, int, int>(
+    prePipeline: pre,
+    postPipeline: post,
+    errorPipeline: error,
+  );
+  print(await (flow.wrapExecutor(executor))('1'));
 }
