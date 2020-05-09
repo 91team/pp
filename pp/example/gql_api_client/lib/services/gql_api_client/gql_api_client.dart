@@ -3,71 +3,98 @@ import 'package:gql_api_client/services/api_client/api_client.dart';
 import 'package:http/http.dart';
 import 'package:pp/pp.dart';
 
-class RequestParams {
-  String query;
-  Map<String, dynamic> variables;
-  bool protected = false;
+class PreProcessorParticle<LT> {
+  Map<String, String> headers;
+  Map<String, dynamic> body;
+  dynamic originalInput;
 
-  RequestParams({@required this.query, this.variables, this.protected});
+  PreProcessorParticle({
+    @required this.headers,
+    @required this.body,
+    this.originalInput,
+  });
 }
 
-class _RequestParams {
-  Map<String, dynamic> body;
-  Map<String, dynamic> headers;
+class BaseParams {
   bool protected = false;
+  BaseParams({this.protected});
+}
 
-  _RequestParams({
-    @required this.body,
-    @required this.headers,
-    @required this.protected,
-  });
+class SendRequestParams extends BaseParams {
+  String query;
+  Map<String, dynamic> variables;
+
+  SendRequestParams({@required this.query, this.variables, bool protected}) : super(protected: protected);
 }
 
 class GqlApiClient {
   ApiClient apiClient = ApiClient(Client(), baseUrl: 'https://ntt.91.team');
-  Pipeline prePipeline = Pipeline<RequestParams, _RequestParams>();
+  Pipeline globalPrePipeline = Pipeline<PreProcessorParticle, PreProcessorParticle>();
   Pipeline postPipeline = Pipeline();
   Pipeline exceptionPipeline = Pipeline();
 
-  GqlApiClient() {
-    prePipeline.add<RequestParams, _RequestParams>(
-      (param) async {
-        return _RequestParams(
-          body: {'query': param.query, 'variables': param.variables},
-          protected: param.protected ?? false,
-          headers: {'Content-Type': 'application/json'},
+  Future<TResult> sendRequest<TResult>(SendRequestParams uInput) async {
+    final flow = Flowline<SendRequestParams, _SendRequestParams, String>(
+      prePipeline: _createSendRequsetPrePipeline(uInput),
+      exceptionPipeline: exceptionPipeline,
+    );
+
+    final executor = flow.wrapExecutor(_sendRequest);
+
+    return await executor(uInput) as TResult;
+  }
+
+  Pipeline<SendRequestParams, _SendRequestParams> _createSendRequsetPrePipeline(SendRequestParams uInput) {
+    final transformPublicSendRequestParamsToParticle = Pipeline<SendRequestParams, PreProcessorParticle>.fromFunction(
+      (originalInput) async {
+        originalInput.protected = originalInput.protected ?? false;
+
+        return PreProcessorParticle(
+          body: {},
+          headers: {},
+          originalInput: originalInput,
         );
       },
     );
 
-    exceptionPipeline.add((exception) async {
-      return exception;
-    });
+    final transformParticleToPrivateSendRequestParams = Pipeline<PreProcessorParticle, _SendRequestParams>.fromFunction(
+      (input) async {
+        if (input.originalInput is SendRequestParams) {
+          final original = input.originalInput as SendRequestParams;
+          return _SendRequestParams(
+            body: {'query': original.query, 'variables': original.variables},
+            headers: input.headers,
+          );
+        }
 
-    exceptionPipeline.add((exception) async {
-      print(exception);
-      return exception;
-    });
-  }
-
-  Future<String> request(RequestParams param, {Pipeline<String, String> post}) async {
-    final flow = Flowline<RequestParams, _RequestParams, String>(
-      prePipeline: prePipeline,
-      exceptionPipeline: exceptionPipeline,
+        throw Exception('input.original is not SendRequsetParams');
+      },
     );
 
-    final executor = flow.wrapExecutor(_request);
-    return await executor(param);
+    return Pipeline<SendRequestParams, _SendRequestParams>.fromPipelinesList([
+      transformPublicSendRequestParamsToParticle,
+      globalPrePipeline,
+      transformParticleToPrivateSendRequestParams,
+    ]);
   }
 
-  Future<String> _request(_RequestParams param) async {
+  Future<String> _sendRequest(_SendRequestParams param) async {
     final response = await apiClient.post(
       'graphql/api',
       body: param.body,
-      protected: param.protected,
       headers: param.headers,
     );
 
     return response;
   }
+}
+
+class _SendRequestParams {
+  Map<String, dynamic> body;
+  Map<String, dynamic> headers;
+
+  _SendRequestParams({
+    @required this.body,
+    @required this.headers,
+  });
 }

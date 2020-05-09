@@ -9,34 +9,18 @@ class ApiClientImpl implements ApiClient {
   ApiClientImpl(
     Client client, {
     String baseUrl,
-    String tokenHeaderName = 'X-User-Token',
-    String tokenPrefix = '',
-  }) : _reqBuilder = RequestBuilder(client, baseUrl, tokenHeaderName, tokenPrefix);
-
-  @override
-  void injectToken(String token) {
-    _reqBuilder.injectToken(token);
-  }
-
-  @override
-  void destroyToken() {
-    _reqBuilder.destroyToken();
-  }
+  }) : _reqBuilder = RequestBuilder(client, baseUrl);
 
   @override
   String get baseUrl => _reqBuilder.baseUrl.toString();
-
-  @override
-  bool get isTokenInjected => _reqBuilder.isTokenInjected;
 
   @override
   Future<String> get(
     String endpoint, {
     Map<String, dynamic> params,
     Map<String, dynamic> headers = const {},
-    bool protected = false,
   }) async {
-    final request = _reqBuilder.buildGet(endpoint, params, headers, protected);
+    final request = _reqBuilder.buildGet(endpoint, params, headers);
     return request.execute();
   }
 
@@ -45,9 +29,8 @@ class ApiClientImpl implements ApiClient {
     String endpoint, {
     Map<String, dynamic> body,
     Map<String, dynamic> headers = const {},
-    bool protected = false,
   }) async {
-    final request = _reqBuilder.buildPost(endpoint, body, headers, protected);
+    final request = _reqBuilder.buildPost(endpoint, body, headers);
     return request.execute();
   }
 
@@ -56,9 +39,8 @@ class ApiClientImpl implements ApiClient {
     String endpoint, {
     Map<String, dynamic> body,
     Map<String, dynamic> headers = const {},
-    bool protected = false,
   }) async {
-    final request = _reqBuilder.buildPostForm(endpoint, body, headers, protected);
+    final request = _reqBuilder.buildPostForm(endpoint, body, headers);
     return request.execute();
   }
 
@@ -67,9 +49,8 @@ class ApiClientImpl implements ApiClient {
     String endpoint, {
     Map<String, dynamic> body,
     Map<String, dynamic> headers = const {},
-    bool protected = false,
   }) async {
-    final request = _reqBuilder.buildPut(endpoint, body, headers, protected);
+    final request = _reqBuilder.buildPut(endpoint, body, headers);
     return request.execute();
   }
 
@@ -78,9 +59,8 @@ class ApiClientImpl implements ApiClient {
     String endpoint, {
     Map<String, dynamic> body = const {},
     Map<String, dynamic> headers = const {},
-    bool protected = false,
   }) async {
-    final request = _reqBuilder.buildPutForm(endpoint, body, headers, protected);
+    final request = _reqBuilder.buildPutForm(endpoint, body, headers);
     return request.execute();
   }
 
@@ -88,9 +68,8 @@ class ApiClientImpl implements ApiClient {
   Future<String> delete(
     String endpoint, {
     Map<String, dynamic> headers = const {},
-    bool protected = false,
   }) async {
-    final request = _reqBuilder.buildDelete(endpoint, headers, protected);
+    final request = _reqBuilder.buildDelete(endpoint, headers);
     return request.execute();
   }
 }

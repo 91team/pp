@@ -5,38 +5,19 @@ import 'request.dart';
 class RequestBuilder {
   final Client client;
 
-  final String tokenHeaderName;
-  final String tokenPrefix;
-
-  String token;
   final Uri baseUrl;
-
-  void injectToken(String token) {
-    this.token = token;
-  }
-
-  void destroyToken() {
-    token = null;
-  }
-
-  bool get isTokenInjected {
-    return token != null;
-  }
 
   RequestBuilder(
     this.client,
     baseUrl,
-    this.tokenHeaderName,
-    this.tokenPrefix,
   ) : baseUrl = Uri.parse(baseUrl);
 
   ApiClientRequest buildGet(
     String endpoint,
     Map<String, dynamic> params,
     Map<String, dynamic> headers,
-    bool protected,
   ) {
-    final backedHeaders = _buildHeaders(headers, protected);
+    final backedHeaders = _buildHeaders(headers);
     final backedParams = _stringifyMapValues(params);
     return GetRequest(
       client: client,
@@ -51,9 +32,8 @@ class RequestBuilder {
     String endpoint,
     Map<String, dynamic> body,
     Map<String, dynamic> headers,
-    bool protected,
   ) {
-    final backedHeaders = _buildHeaders(headers, protected);
+    final backedHeaders = _buildHeaders(headers);
     return PostRequest(
       client: client,
       baseUrl: baseUrl,
@@ -67,9 +47,8 @@ class RequestBuilder {
     String endpoint,
     Map<String, dynamic> body,
     Map<String, dynamic> headers,
-    bool protected,
   ) {
-    final backedHeaders = _buildHeaders(headers, protected);
+    final backedHeaders = _buildHeaders(headers);
     return SendFormRequest(
       client: client,
       baseUrl: baseUrl,
@@ -84,9 +63,8 @@ class RequestBuilder {
     String endpoint,
     Map<String, dynamic> body,
     Map<String, dynamic> headers,
-    bool protected,
   ) {
-    final backedHeaders = _buildHeaders(headers, protected);
+    final backedHeaders = _buildHeaders(headers);
     final backedBody = _stringifyMapValues(body);
     return PutRequest(
       client: client,
@@ -101,9 +79,8 @@ class RequestBuilder {
     String endpoint,
     Map<String, dynamic> body,
     Map<String, dynamic> headers,
-    bool protected,
   ) {
-    final backedHeaders = _buildHeaders(headers, protected);
+    final backedHeaders = _buildHeaders(headers);
     return SendFormRequest(
       client: client,
       baseUrl: baseUrl,
@@ -117,9 +94,8 @@ class RequestBuilder {
   ApiClientRequest buildDelete(
     String endpoint,
     Map<String, dynamic> headers,
-    bool protected,
   ) {
-    final backedHeaders = _buildHeaders(headers, protected);
+    final backedHeaders = _buildHeaders(headers);
     return DeleteRequest(
       client: client,
       baseUrl: baseUrl,
@@ -128,13 +104,9 @@ class RequestBuilder {
     );
   }
 
-  Map<String, String> _buildHeaders(Map<String, dynamic> headers, bool protected) {
+  Map<String, String> _buildHeaders(Map<String, dynamic> headers) {
     final headersWithStringValues = _stringifyMapValues(headers);
     final result = <String, String>{}..addAll(headersWithStringValues);
-    if (protected) {
-      result[tokenHeaderName] = _isTokenPrefixDefined ? '$tokenPrefix $token' : token;
-    }
-
     return result;
   }
 
@@ -144,6 +116,4 @@ class RequestBuilder {
     }
     return origin.map<String, String>((key, value) => MapEntry(key, value.toString()));
   }
-
-  bool get _isTokenPrefixDefined => tokenPrefix != null && tokenPrefix.isNotEmpty;
 }
