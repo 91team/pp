@@ -22,15 +22,6 @@ class BaseParams {
   BaseParams({this.protected});
 }
 
-class UploadFileParams extends BaseParams {
-  File file;
-
-  UploadFileParams({
-    @required this.file,
-    bool protected,
-  }) : super(protected: protected);
-}
-
 class SendRequestParams extends BaseParams {
   String query;
   Map<String, dynamic> variables;
@@ -40,6 +31,35 @@ class SendRequestParams extends BaseParams {
     this.variables,
     bool protected,
   }) : super(protected: protected);
+}
+
+class SendRequestPureParams {
+  Map<String, dynamic> body;
+  Map<String, dynamic> headers;
+
+  SendRequestPureParams({
+    @required this.body,
+    @required this.headers,
+  });
+}
+
+class UploadFileParams extends BaseParams {
+  File file;
+
+  UploadFileParams({
+    @required this.file,
+    bool protected,
+  }) : super(protected: protected);
+}
+
+class UploadFilePureParams {
+  Map<String, dynamic> body;
+  Map<String, dynamic> headers;
+
+  UploadFilePureParams({
+    @required this.body,
+    @required this.headers,
+  });
 }
 
 class GqlApiClient {
@@ -121,8 +141,7 @@ class GqlApiClient {
       },
     );
 
-    final transformParticleToPrivateSendRequestPureParams =
-        Pipeline<PreProcessorParticle, SendRequestPureParams>.fromFunction(
+    final transformParticleToSendRequestPureParams = Pipeline<PreProcessorParticle, SendRequestPureParams>.fromFunction(
       (input) async {
         if (input.originalInput is SendRequestParams) {
           final original = input.originalInput as SendRequestParams;
@@ -139,7 +158,7 @@ class GqlApiClient {
     return Pipeline<SendRequestParams, SendRequestPureParams>.fromPipelinesList([
       transformPublicSendRequestPureParamsToParticle,
       globalPrePipeline.isEmpty == true ? null : globalPrePipeline,
-      transformParticleToPrivateSendRequestPureParams,
+      transformParticleToSendRequestPureParams,
     ]);
   }
 
@@ -156,8 +175,7 @@ class GqlApiClient {
       },
     );
 
-    final transformParticleToPrivateUploadFileParams =
-        Pipeline<PreProcessorParticle, UploadFilePureParams>.fromFunction(
+    final transformParticleToUploadFilePureParams = Pipeline<PreProcessorParticle, UploadFilePureParams>.fromFunction(
       (input) async {
         if (input.originalInput is UploadFileParams) {
           final original = input.originalInput as UploadFileParams;
@@ -189,27 +207,7 @@ class GqlApiClient {
     return Pipeline<UploadFileParams, UploadFilePureParams>.fromPipelinesList([
       transformPublicUploadFileParamsToParticle,
       globalPrePipeline.isEmpty == true ? null : globalPrePipeline,
-      transformParticleToPrivateUploadFileParams,
+      transformParticleToUploadFilePureParams,
     ]);
   }
-}
-
-class SendRequestPureParams {
-  Map<String, dynamic> body;
-  Map<String, dynamic> headers;
-
-  SendRequestPureParams({
-    @required this.body,
-    @required this.headers,
-  });
-}
-
-class UploadFilePureParams {
-  Map<String, dynamic> body;
-  Map<String, dynamic> headers;
-
-  UploadFilePureParams({
-    @required this.body,
-    @required this.headers,
-  });
 }
