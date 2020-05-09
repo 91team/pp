@@ -1,4 +1,5 @@
 import 'package:gql_api_client/services/gql_api_client/gql_api_client.dart';
+import 'package:pp/pp.dart';
 
 class TestScreenController {
   final _api = GqlApiClient();
@@ -8,6 +9,11 @@ class TestScreenController {
       if (input.originalInput.protected) {
         input.headers['Access'] = 'TOKEN';
       }
+
+      _api.globalPostPipeline.add<String, dynamic>((data) async {
+        return data;
+      });
+      ;
 
       return input;
     });
@@ -26,6 +32,11 @@ class TestScreenController {
             }
           ''',
           protected: true,
+        ),
+        postPipeline: Pipeline<String, String>.fromFunction(
+          (param) async {
+            return param;
+          },
         ),
       );
       return response;

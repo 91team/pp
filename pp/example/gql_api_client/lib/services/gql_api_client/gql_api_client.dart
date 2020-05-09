@@ -39,13 +39,17 @@ class SendRequestParams extends BaseParams {
 class GqlApiClient {
   ApiClient apiClient = ApiClient(Client(), baseUrl: 'https://ntt.91.team');
   Pipeline globalPrePipeline = Pipeline<PreProcessorParticle, PreProcessorParticle>();
-  Pipeline postPipeline = Pipeline();
-  Pipeline exceptionPipeline = Pipeline();
+  Pipeline globalPostPipeline = Pipeline<dynamic, dynamic>();
+  Pipeline globalExceptionPipeline = Pipeline();
 
-  Future<TResult> sendRequest<TResult>(SendRequestParams uInput) async {
+  Future<TResult> sendRequest<TResult>(SendRequestParams uInput, {Pipeline<dynamic, TResult> postPipeline}) async {
     final flow = Flowline<SendRequestParams, _SendRequestParams, String>(
       prePipeline: _createSendRequestPrePipeline(uInput),
-      exceptionPipeline: exceptionPipeline,
+      postPipeline: Pipeline.fromPipelinesList([
+        globalPostPipeline.isEmpty == true ? null : globalPostPipeline,
+        postPipeline,
+      ]),
+      exceptionPipeline: globalExceptionPipeline,
     );
 
     final executor = flow.wrapExecutor(_sendRequest);
@@ -56,7 +60,7 @@ class GqlApiClient {
   Future<TResult> uploadFile<TResult>(UploadFileParams uInput) async {
     final flow = Flowline<UploadFileParams, _UploadFileParams, String>(
       prePipeline: _createUploadFilePrePipeline(uInput),
-      exceptionPipeline: exceptionPipeline,
+      exceptionPipeline: globalExceptionPipeline,
     );
 
     final executor = flow.wrapExecutor(_uploadFile);

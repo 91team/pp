@@ -25,6 +25,18 @@ class Pipeline<I, O> {
     _middlewares.add(fn);
   }
 
+  int get length {
+    return _middlewares.length;
+  }
+
+  bool get isEmpty {
+    return _middlewares.isEmpty;
+  }
+
+  bool get isNotEmpty {
+    return _middlewares.isNotEmpty;
+  }
+
   Future<O> run(I i) async {
     final transform = _makeTransform();
 
