@@ -85,7 +85,7 @@ class GqlApiClient {
 
   GqlApiClient({@required ApiClient apiClient}) {
     _apiClient = apiClient;
-    globalPrePipeline.add(_transformBaseparamsToToParticle);
+    globalPrePipeline.add(_transformBaseParamsToToParticle);
   }
 
   Future<TResult> sendRequest<TResult>(
@@ -264,7 +264,7 @@ class GqlApiClient {
     ]);
   }
 
-  Future<PreProcessorParticle> _transformBaseparamsToToParticle(BaseParams originalInput) async {
+  Future<PreProcessorParticle> _transformBaseParamsToToParticle(BaseParams originalInput) async {
     originalInput.protected = originalInput.protected ?? false;
 
     return PreProcessorParticle(
