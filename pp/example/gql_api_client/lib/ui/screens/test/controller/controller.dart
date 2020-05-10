@@ -1,8 +1,10 @@
+import 'package:gql_api_client/services/api_client/api_client.dart';
 import 'package:gql_api_client/services/gql_api_client/gql_api_client.dart';
+import 'package:http/http.dart';
 import 'package:pp/pp.dart';
 
 class TestScreenController {
-  final _api = GqlApiClient();
+  final _api = GqlApiClient(apiClient: ApiClient(Client(), baseUrl: 'https://ntt.91.team'));
 
   TestScreenController() {
     _api.globalPrePipeline.add<PreProcessorParticle, PreProcessorParticle>((input) async {

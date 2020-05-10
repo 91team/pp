@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:gql_api_client/services/api_client/api_client.dart';
-import 'package:http/http.dart';
 import 'package:pp/pp.dart';
 
 class PreProcessorParticle {
@@ -79,10 +78,20 @@ class UploadFilePureParams {
 }
 
 class GqlApiClient {
-  ApiClient apiClient = ApiClient(Client(), baseUrl: 'https://ntt.91.team');
-  Pipeline globalPrePipeline = Pipeline<PreProcessorParticle, PreProcessorParticle>();
-  Pipeline globalPostPipeline = Pipeline<dynamic, dynamic>();
+  final ApiClient _apiClient;
+  Pipeline<PreProcessorParticle, PreProcessorParticle> globalPrePipeline = Pipeline();
+  Pipeline<dynamic, dynamic> globalPostPipeline = Pipeline();
   Pipeline globalExceptionPipeline = Pipeline();
+
+  GqlApiClient({
+    @required ApiClient apiClient,
+    prePipeline,
+    postPipeline,
+    exceptionPipeline,
+  })  : _apiClient = apiClient,
+        globalPrePipeline = prePipeline ?? Pipeline<PreProcessorParticle, PreProcessorParticle>(),
+        globalPostPipeline = postPipeline ?? Pipeline<dynamic, dynamic>(),
+        globalExceptionPipeline = exceptionPipeline ?? Pipeline();
 
   Future<TResult> sendRequest<TResult>(
     SendRequestParams uInput, {
@@ -100,28 +109,13 @@ class GqlApiClient {
   }
 
   Future<String> pureSendRequest(SendRequestPureParams param) async {
-    final response = await apiClient.post(
+    final response = await _apiClient.post(
       'graphql/api',
       body: param.body,
       headers: param.headers,
     );
 
     return response;
-  }
-
-  Future<TResult> uploadFile<TResult>(
-    UploadFileParams uInput, {
-    Pipeline<dynamic, TResult> postPipeline,
-  }) async {
-    final flow = Flowline<UploadFileParams, UploadFilePureParams, String>(
-      prePipeline: _createUploadFilePrePipeline(uInput),
-      postPipeline: _createPostPipeline<dynamic, String>(postPipeline),
-      exceptionPipeline: globalExceptionPipeline.isEmpty == true ? null : globalExceptionPipeline,
-    );
-
-    final executor = flow.wrapExecutor(pureUploadFile);
-
-    return await executor(uInput) as TResult;
   }
 
   Future<TResult> uploadFiles<TResult>(
@@ -139,8 +133,23 @@ class GqlApiClient {
     return await executor(uInput) as TResult;
   }
 
+  Future<TResult> uploadFile<TResult>(
+    UploadFileParams uInput, {
+    Pipeline<dynamic, TResult> postPipeline,
+  }) async {
+    final flow = Flowline<UploadFileParams, UploadFilePureParams, String>(
+      prePipeline: _createUploadFilePrePipeline(uInput),
+      postPipeline: _createPostPipeline<dynamic, String>(postPipeline),
+      exceptionPipeline: globalExceptionPipeline.isEmpty == true ? null : globalExceptionPipeline,
+    );
+
+    final executor = flow.wrapExecutor(pureUploadFile);
+
+    return await executor(uInput) as TResult;
+  }
+
   Future<String> pureUploadFile(UploadFilePureParams param) async {
-    final response = await apiClient.postForm(
+    final response = await _apiClient.postForm(
       'graphql/api',
       body: param.body,
       headers: param.headers,
