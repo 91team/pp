@@ -43,6 +43,22 @@ class SendRequestPureParams {
   });
 }
 
+class UploadFilesParams extends BaseParams {
+  List<File> files;
+
+  UploadFilesParams({
+    @required this.files,
+    bool protected,
+  }) : super(protected: protected);
+}
+
+class UploadFilesPureParams extends UploadFilePureParams {
+  UploadFilesPureParams({
+    @required body,
+    @required headers,
+  }) : super(body: body, headers: headers);
+}
+
 class UploadFileParams extends BaseParams {
   File file;
 
@@ -99,6 +115,21 @@ class GqlApiClient {
   }) async {
     final flow = Flowline<UploadFileParams, UploadFilePureParams, String>(
       prePipeline: _createUploadFilePrePipeline(uInput),
+      postPipeline: _createPostPipeline<dynamic, String>(postPipeline),
+      exceptionPipeline: globalExceptionPipeline.isEmpty == true ? null : globalExceptionPipeline,
+    );
+
+    final executor = flow.wrapExecutor(pureUploadFile);
+
+    return await executor(uInput) as TResult;
+  }
+
+  Future<TResult> uploadFiles<TResult>(
+    UploadFilesParams uInput, {
+    Pipeline<dynamic, TResult> postPipeline,
+  }) async {
+    final flow = Flowline<UploadFilesParams, UploadFilesPureParams, String>(
+      prePipeline: _createUploadFilesPrePipeline(uInput),
       postPipeline: _createPostPipeline<dynamic, String>(postPipeline),
       exceptionPipeline: globalExceptionPipeline.isEmpty == true ? null : globalExceptionPipeline,
     );
@@ -205,6 +236,64 @@ class GqlApiClient {
     );
 
     return Pipeline<UploadFileParams, UploadFilePureParams>.fromPipelinesList([
+      transformPublicUploadFileParamsToParticle,
+      globalPrePipeline.isEmpty == true ? null : globalPrePipeline,
+      transformParticleToUploadFilePureParams,
+    ]);
+  }
+
+  Pipeline<UploadFilesParams, UploadFilesPureParams> _createUploadFilesPrePipeline(UploadFilesParams uInput) {
+    final transformPublicUploadFileParamsToParticle = Pipeline<UploadFilesParams, PreProcessorParticle>.fromFunction(
+      (originalInput) async {
+        originalInput.protected = originalInput.protected ?? false;
+
+        return PreProcessorParticle(
+          body: {},
+          headers: {},
+          originalInput: originalInput,
+        );
+      },
+    );
+
+    final transformParticleToUploadFilePureParams = Pipeline<PreProcessorParticle, UploadFilesPureParams>.fromFunction(
+      (input) async {
+        if (input.originalInput is UploadFilesParams) {
+          final original = input.originalInput as UploadFilesParams;
+
+          final vars = [];
+          final maps = {};
+
+          for (var i = 0; i < original.files.length; i++) {
+            vars.add(null);
+            maps['"${i.toString()}"'] = '["variables.files.$i"]';
+            input.body[i.toString()] = original.files[i];
+          }
+
+          input.body['operations'] = '''
+                  {
+                      "query": "
+                        
+
+                        mutation UploadMultiple(\$files: [Upload!]!){
+                          multipleUpload(files: \$files)
+                        }
+                      ",
+                      "variables": { "files": ${vars.toString()} }
+                  }
+              ''';
+          input.body['map'] = maps.toString();
+
+          return UploadFilesPureParams(
+            body: input.body,
+            headers: input.headers,
+          );
+        }
+
+        throw Exception('input.original is not UploadFileParams');
+      },
+    );
+
+    return Pipeline<UploadFilesParams, UploadFilesPureParams>.fromPipelinesList([
       transformPublicUploadFileParamsToParticle,
       globalPrePipeline.isEmpty == true ? null : globalPrePipeline,
       transformParticleToUploadFilePureParams,
