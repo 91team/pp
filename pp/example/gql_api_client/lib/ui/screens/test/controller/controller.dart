@@ -12,11 +12,6 @@ class TestScreenController {
         input.headers['Access'] = 'TOKEN';
       }
 
-      _api.globalPostPipeline.add<String, dynamic>((data) async {
-        return data;
-      });
-      ;
-
       return input;
     });
   }

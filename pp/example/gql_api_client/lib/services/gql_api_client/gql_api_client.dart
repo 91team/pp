@@ -78,20 +78,15 @@ class UploadFilePureParams {
 }
 
 class GqlApiClient {
-  final ApiClient _apiClient;
+  ApiClient _apiClient;
   Pipeline<PreProcessorParticle, PreProcessorParticle> globalPrePipeline = Pipeline();
   Pipeline<dynamic, dynamic> globalPostPipeline = Pipeline();
   Pipeline globalExceptionPipeline = Pipeline();
 
-  GqlApiClient({
-    @required ApiClient apiClient,
-    prePipeline,
-    postPipeline,
-    exceptionPipeline,
-  })  : _apiClient = apiClient,
-        globalPrePipeline = prePipeline ?? Pipeline<PreProcessorParticle, PreProcessorParticle>(),
-        globalPostPipeline = postPipeline ?? Pipeline<dynamic, dynamic>(),
-        globalExceptionPipeline = exceptionPipeline ?? Pipeline();
+  GqlApiClient({@required ApiClient apiClient}) {
+    _apiClient = apiClient;
+    globalPrePipeline.add(_transformBaseparamsToToParticle);
+  }
 
   Future<TResult> sendRequest<TResult>(
     SendRequestParams uInput, {
@@ -168,19 +163,6 @@ class GqlApiClient {
   }
 
   Pipeline<SendRequestParams, SendRequestPureParams> _createSendRequestPrePipeline(SendRequestParams uInput) {
-    final transformPublicSendRequestPureParamsToParticle =
-        Pipeline<SendRequestParams, PreProcessorParticle>.fromFunction(
-      (originalInput) async {
-        originalInput.protected = originalInput.protected ?? false;
-
-        return PreProcessorParticle(
-          body: {},
-          headers: {},
-          originalInput: originalInput,
-        );
-      },
-    );
-
     final transformParticleToSendRequestPureParams = Pipeline<PreProcessorParticle, SendRequestPureParams>.fromFunction(
       (input) async {
         if (input.originalInput is SendRequestParams) {
@@ -196,25 +178,12 @@ class GqlApiClient {
     );
 
     return Pipeline<SendRequestParams, SendRequestPureParams>.fromPipelinesList([
-      transformPublicSendRequestPureParamsToParticle,
       globalPrePipeline.isEmpty == true ? null : globalPrePipeline,
       transformParticleToSendRequestPureParams,
     ]);
   }
 
   Pipeline<UploadFileParams, UploadFilePureParams> _createUploadFilePrePipeline(UploadFileParams uInput) {
-    final transformPublicUploadFileParamsToParticle = Pipeline<UploadFileParams, PreProcessorParticle>.fromFunction(
-      (originalInput) async {
-        originalInput.protected = originalInput.protected ?? false;
-
-        return PreProcessorParticle(
-          body: {},
-          headers: {},
-          originalInput: originalInput,
-        );
-      },
-    );
-
     final transformParticleToUploadFilePureParams = Pipeline<PreProcessorParticle, UploadFilePureParams>.fromFunction(
       (input) async {
         if (input.originalInput is UploadFileParams) {
@@ -245,25 +214,12 @@ class GqlApiClient {
     );
 
     return Pipeline<UploadFileParams, UploadFilePureParams>.fromPipelinesList([
-      transformPublicUploadFileParamsToParticle,
       globalPrePipeline.isEmpty == true ? null : globalPrePipeline,
       transformParticleToUploadFilePureParams,
     ]);
   }
 
   Pipeline<UploadFilesParams, UploadFilesPureParams> _createUploadFilesPrePipeline(UploadFilesParams uInput) {
-    final transformPublicUploadFileParamsToParticle = Pipeline<UploadFilesParams, PreProcessorParticle>.fromFunction(
-      (originalInput) async {
-        originalInput.protected = originalInput.protected ?? false;
-
-        return PreProcessorParticle(
-          body: {},
-          headers: {},
-          originalInput: originalInput,
-        );
-      },
-    );
-
     final transformParticleToUploadFilePureParams = Pipeline<PreProcessorParticle, UploadFilesPureParams>.fromFunction(
       (input) async {
         if (input.originalInput is UploadFilesParams) {
@@ -303,9 +259,18 @@ class GqlApiClient {
     );
 
     return Pipeline<UploadFilesParams, UploadFilesPureParams>.fromPipelinesList([
-      transformPublicUploadFileParamsToParticle,
       globalPrePipeline.isEmpty == true ? null : globalPrePipeline,
       transformParticleToUploadFilePureParams,
     ]);
+  }
+
+  Future<PreProcessorParticle> _transformBaseparamsToToParticle(BaseParams originalInput) async {
+    originalInput.protected = originalInput.protected ?? false;
+
+    return PreProcessorParticle(
+      body: {},
+      headers: {},
+      originalInput: originalInput,
+    );
   }
 }
